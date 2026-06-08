@@ -1,0 +1,127 @@
+name: CloudStore CI
+
+on:
+  push:
+    branches:
+      - main
+      - feature/**
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build user-order-service
+        run: |
+          cd user-order-service
+          mvn clean package -DskipTests
+
+      - name: Build product-service
+        run: |
+          cd product-service
+          mvn clean package -DskipTests
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Test user-order-service
+        run: |
+          cd user-order-service
+          mvn test
+
+      - name: Test product-service
+        run: |
+          cd product-service
+          mvn test
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push user-order-service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./user-order-service
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/cloudstore-user-order-service:latest
+
+      - name: Build and push product-service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./product-service
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/cloudstore-product-service:latest
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./cloudstore-frontend
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/cloudstore-frontend:latest
+
+  deploy-user-order:
+    runs-on: ubuntu-latest
+    needs: docker
+    steps:
+      - name: Deploy user-order-service to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          command_timeout: 5m
+          script: |
+            cd ~/cloudstore
+            docker compose down
+            docker system prune -f
+            docker compose pull
+            docker compose up -d
+
+  deploy-product:
+    runs-on: ubuntu-latest
+    needs: docker
+    steps:
+      - name: Deploy product-service to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST_2 }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          command_timeout: 5m
+          script: |
+            cd ~/cloudstore
+            docker-compose down
+            docker system prune -f
+            docker-compose pull
+            docker-compose up -d
