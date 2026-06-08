@@ -48,7 +48,6 @@ function Login() {
         localStorage.removeItem("token");
         localStorage.removeItem("username");
         setLoggedInUser("");
-        window.location.reload();
     }
 
     if (loggedInUser) {
@@ -67,31 +66,18 @@ function Login() {
             <h2 className="mb-4">{isRegistering ? "Register" : "Login"}</h2>
             <form onSubmit={isRegistering ? handleRegister : handleLogin}>
                 <div className="mb-3">
-                    <input
-                        type="text"
-                        placeholder="Username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="form-control"
-                    />
+                    <input type="text" placeholder="Username" value={username}
+                           onChange={(e) => setUsername(e.target.value)} className="form-control"/>
                 </div>
                 <div className="mb-3">
-                    <input
-                        type="password"
-                        placeholder="Password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="form-control"
-                    />
+                    <input type="password" placeholder="Password" value={password}
+                           onChange={(e) => setPassword(e.target.value)} className="form-control"/>
                 </div>
                 <button type="submit" className="btn btn-dark me-2">
                     {isRegistering ? "Register" : "Login"}
                 </button>
-                <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={() => setIsRegistering(!isRegistering)}
-                >
+                <button type="button" className="btn btn-outline-secondary"
+                        onClick={() => setIsRegistering(!isRegistering)}>
                     {isRegistering ? "Back to Login" : "Create Account"}
                 </button>
             </form>
